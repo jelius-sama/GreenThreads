@@ -1,4 +1,4 @@
-#include "lib/libgtruntime.h"
+#include "libgtruntime.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

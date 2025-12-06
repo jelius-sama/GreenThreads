@@ -17,7 +17,7 @@ STATIC_LIB := lib$(LIB_NAME).a
 GO_LDFLAGS := -ldflags="-s -w"
 
 # C build flags
-CFLAGS := -Wall -Wextra -O2 -I./ -I$(LIB_DIR)
+CFLAGS := -Wall -Wextra -O2 -I./lib -I./$(LIB_DIR)
 
 # Targets
 .PHONY: all clean lib example example2 install test

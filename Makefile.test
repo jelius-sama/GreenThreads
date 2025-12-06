@@ -1,0 +1,87 @@
+CC := gcc
+CFLAGS := -Wall -Wextra -static -O2 -I./lib
+LDFLAGS := -L./lib -lgtruntime
+
+TEST_DIR := tests
+BUILD_DIR := build/tests
+
+# Test sources
+TESTS := test_01_basic_spawn \
+         test_02_return_int \
+         test_03_return_ptr \
+         test_04_channel_basic \
+         test_05_channel_close \
+         test_06_waitgroup \
+         test_07_mutex \
+         test_08_context_cancel \
+         test_09_context_timeout \
+         test_10_timer \
+         test_11_ticker \
+         test_12_nonblocking \
+         test_13_task_status \
+         test_14_producer_consumer \
+         test_15_fanout_fanin
+
+TEST_BINARIES := $(patsubst %,$(BUILD_DIR)/%,$(TESTS))
+
+.PHONY: all tests clean run-tests help
+
+all: tests
+
+# Build all tests
+tests: $(TEST_BINARIES)
+
+# Pattern rule for building tests
+$(BUILD_DIR)/%: $(TEST_DIR)/%.c lib/libgtruntime.a
+	@mkdir -p $(BUILD_DIR)
+	@echo "Building $@..."
+	@$(CC) $(CFLAGS) -o $@ $< $(LDFLAGS)
+
+# Run all tests
+run-tests: tests
+	@echo "========================================"
+	@echo "Running GTRuntime Test Suite"
+	@echo "========================================"
+	@passed=0; \
+	failed=0; \
+	for test in $(TEST_BINARIES); do \
+		echo ""; \
+		echo "Running $$test..."; \
+		if LD_LIBRARY_PATH=./lib $$test; then \
+			passed=$$((passed + 1)); \
+		else \
+			failed=$$((failed + 1)); \
+		fi; \
+	done; \
+	echo ""; \
+	echo "========================================"; \
+	echo "Test Results: $$passed passed, $$failed failed"; \
+	echo "========================================"; \
+	if [ $$failed -ne 0 ]; then exit 1; fi
+
+# Run a single test
+run-%: $(BUILD_DIR)/%
+	@echo "Running $<..."
+	@LD_LIBRARY_PATH=./lib $<
+
+# Clean test binaries
+clean:
+	@echo "Cleaning test binaries..."
+	@rm -rf $(BUILD_DIR)
+
+# Help
+help:
+	@echo "GTRuntime Test Suite Makefile"
+	@echo ""
+	@echo "Targets:"
+	@echo "  all         - Build all tests (default)"
+	@echo "  tests       - Build all tests"
+	@echo "  run-tests   - Build and run all tests"
+	@echo "  run-<test>  - Run a specific test (e.g., make run-test_01_basic_spawn)"
+	@echo "  clean       - Remove test binaries"
+	@echo "  help        - Show this help message"
+	@echo ""
+	@echo "Available tests:"
+	@for test in $(TESTS); do \
+		echo "  $$test"; \
+	done

@@ -1,0 +1,242 @@
+[
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-Wall",
+      "-Wextra",
+      "-O2",
+      "-I./lib",
+      "-o",
+      "build/tests/test_01_basic_spawn",
+      "tests/test_01_basic_spawn.c"
+    ],
+    "directory": "/home/jelius-sama/Development/GTRuntime",
+    "file": "/home/jelius-sama/Development/GTRuntime/tests/test_01_basic_spawn.c",
+    "output": "/home/jelius-sama/Development/GTRuntime/build/tests/test_01_basic_spawn"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-Wall",
+      "-Wextra",
+      "-O2",
+      "-I./lib",
+      "-o",
+      "build/tests/test_02_return_int",
+      "tests/test_02_return_int.c"
+    ],
+    "directory": "/home/jelius-sama/Development/GTRuntime",
+    "file": "/home/jelius-sama/Development/GTRuntime/tests/test_02_return_int.c",
+    "output": "/home/jelius-sama/Development/GTRuntime/build/tests/test_02_return_int"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-Wall",
+      "-Wextra",
+      "-O2",
+      "-I./lib",
+      "-o",
+      "build/tests/test_03_return_ptr",
+      "tests/test_03_return_ptr.c"
+    ],
+    "directory": "/home/jelius-sama/Development/GTRuntime",
+    "file": "/home/jelius-sama/Development/GTRuntime/tests/test_03_return_ptr.c",
+    "output": "/home/jelius-sama/Development/GTRuntime/build/tests/test_03_return_ptr"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-Wall",
+      "-Wextra",
+      "-O2",
+      "-I./lib",
+      "-o",
+      "build/tests/test_04_channel_basic",
+      "tests/test_04_channel_basic.c"
+    ],
+    "directory": "/home/jelius-sama/Development/GTRuntime",
+    "file": "/home/jelius-sama/Development/GTRuntime/tests/test_04_channel_basic.c",
+    "output": "/home/jelius-sama/Development/GTRuntime/build/tests/test_04_channel_basic"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-Wall",
+      "-Wextra",
+      "-O2",
+      "-I./lib",
+      "-o",
+      "build/tests/test_05_channel_close",
+      "tests/test_05_channel_close.c"
+    ],
+    "directory": "/home/jelius-sama/Development/GTRuntime",
+    "file": "/home/jelius-sama/Development/GTRuntime/tests/test_05_channel_close.c",
+    "output": "/home/jelius-sama/Development/GTRuntime/build/tests/test_05_channel_close"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-Wall",
+      "-Wextra",
+      "-O2",
+      "-I./lib",
+      "-o",
+      "build/tests/test_06_waitgroup",
+      "tests/test_06_waitgroup.c"
+    ],
+    "directory": "/home/jelius-sama/Development/GTRuntime",
+    "file": "/home/jelius-sama/Development/GTRuntime/tests/test_06_waitgroup.c",
+    "output": "/home/jelius-sama/Development/GTRuntime/build/tests/test_06_waitgroup"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-Wall",
+      "-Wextra",
+      "-O2",
+      "-I./lib",
+      "-o",
+      "build/tests/test_07_mutex",
+      "tests/test_07_mutex.c"
+    ],
+    "directory": "/home/jelius-sama/Development/GTRuntime",
+    "file": "/home/jelius-sama/Development/GTRuntime/tests/test_07_mutex.c",
+    "output": "/home/jelius-sama/Development/GTRuntime/build/tests/test_07_mutex"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-Wall",
+      "-Wextra",
+      "-O2",
+      "-I./lib",
+      "-o",
+      "build/tests/test_08_context_cancel",
+      "tests/test_08_context_cancel.c"
+    ],
+    "directory": "/home/jelius-sama/Development/GTRuntime",
+    "file": "/home/jelius-sama/Development/GTRuntime/tests/test_08_context_cancel.c",
+    "output": "/home/jelius-sama/Development/GTRuntime/build/tests/test_08_context_cancel"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-Wall",
+      "-Wextra",
+      "-O2",
+      "-I./lib",
+      "-o",
+      "build/tests/test_09_context_timeout",
+      "tests/test_09_context_timeout.c"
+    ],
+    "directory": "/home/jelius-sama/Development/GTRuntime",
+    "file": "/home/jelius-sama/Development/GTRuntime/tests/test_09_context_timeout.c",
+    "output": "/home/jelius-sama/Development/GTRuntime/build/tests/test_09_context_timeout"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-Wall",
+      "-Wextra",
+      "-O2",
+      "-I./lib",
+      "-o",
+      "build/tests/test_10_timer",
+      "tests/test_10_timer.c"
+    ],
+    "directory": "/home/jelius-sama/Development/GTRuntime",
+    "file": "/home/jelius-sama/Development/GTRuntime/tests/test_10_timer.c",
+    "output": "/home/jelius-sama/Development/GTRuntime/build/tests/test_10_timer"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-Wall",
+      "-Wextra",
+      "-O2",
+      "-I./lib",
+      "-o",
+      "build/tests/test_11_ticker",
+      "tests/test_11_ticker.c"
+    ],
+    "directory": "/home/jelius-sama/Development/GTRuntime",
+    "file": "/home/jelius-sama/Development/GTRuntime/tests/test_11_ticker.c",
+    "output": "/home/jelius-sama/Development/GTRuntime/build/tests/test_11_ticker"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-Wall",
+      "-Wextra",
+      "-O2",
+      "-I./lib",
+      "-o",
+      "build/tests/test_12_nonblocking",
+      "tests/test_12_nonblocking.c"
+    ],
+    "directory": "/home/jelius-sama/Development/GTRuntime",
+    "file": "/home/jelius-sama/Development/GTRuntime/tests/test_12_nonblocking.c",
+    "output": "/home/jelius-sama/Development/GTRuntime/build/tests/test_12_nonblocking"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-Wall",
+      "-Wextra",
+      "-O2",
+      "-I./lib",
+      "-o",
+      "build/tests/test_13_task_status",
+      "tests/test_13_task_status.c"
+    ],
+    "directory": "/home/jelius-sama/Development/GTRuntime",
+    "file": "/home/jelius-sama/Development/GTRuntime/tests/test_13_task_status.c",
+    "output": "/home/jelius-sama/Development/GTRuntime/build/tests/test_13_task_status"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-Wall",
+      "-Wextra",
+      "-O2",
+      "-I./lib",
+      "-o",
+      "build/tests/test_14_producer_consumer",
+      "tests/test_14_producer_consumer.c"
+    ],
+    "directory": "/home/jelius-sama/Development/GTRuntime",
+    "file": "/home/jelius-sama/Development/GTRuntime/tests/test_14_producer_consumer.c",
+    "output": "/home/jelius-sama/Development/GTRuntime/build/tests/test_14_producer_consumer"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-c",
+      "-Wall",
+      "-Wextra",
+      "-O2",
+      "-I./lib",
+      "-o",
+      "build/tests/test_15_fanout_fanin",
+      "tests/test_15_fanout_fanin.c"
+    ],
+    "directory": "/home/jelius-sama/Development/GTRuntime",
+    "file": "/home/jelius-sama/Development/GTRuntime/tests/test_15_fanout_fanin.c",
+    "output": "/home/jelius-sama/Development/GTRuntime/build/tests/test_15_fanout_fanin"
+  }
+]
