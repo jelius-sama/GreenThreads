@@ -654,7 +654,7 @@ int main(void) {
     demo_timers();
     demo_tickers();
     demo_pipeline();
-    demo_fanout_fanin();
+    // demo_fanout_fanin();
     demo_non_blocking();
     demo_task_status();
     demo_context_timeout();
