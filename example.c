@@ -1,0 +1,520 @@
+#include "gtruntime.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
+// ========== EXAMPLE 1: Basic Goroutine Spawning ==========
+
+void simple_task(void *arg) {
+    int id = *(int *)arg;
+    printf("[Task %d] Running in goroutine\n", id);
+    gt_sleep(100);
+    printf("[Task %d] Completed\n", id);
+}
+
+void demo_basic_spawning() {
+    printf("\n=== Demo 1: Basic Goroutine Spawning ===\n");
+
+    int id1 = 1, id2 = 2, id3 = 3;
+
+    gt_task_t t1 = gt_spawn_void(simple_task, &id1);
+    gt_task_t t2 = gt_spawn_void(simple_task, &id2);
+    gt_task_t t3 = gt_spawn_void(simple_task, &id3);
+
+    printf("Spawned 3 tasks\n");
+
+    gt_join(t1);
+    gt_join(t2);
+    gt_join(t3);
+
+    printf("All tasks completed\n");
+}
+
+// ========== EXAMPLE 2: Returning Values from Goroutines ==========
+
+int compute_factorial(void *arg) {
+    int n = *(int *)arg;
+    int result = 1;
+    for (int i = 2; i <= n; i++) {
+        result *= i;
+    }
+    gt_sleep(50); // Simulate work
+    return result;
+}
+
+void *allocate_string(void *arg) {
+    const char *input = (const char *)arg;
+    char *result = malloc(strlen(input) + 20);
+    sprintf(result, "Processed: %s", input);
+    gt_sleep(100);
+    return result;
+}
+
+void demo_return_values() {
+    printf("\n=== Demo 2: Return Values ===\n");
+
+    int n = 10;
+    gt_task_t task = gt_spawn_int(compute_factorial, &n);
+
+    int factorial;
+    gt_join_int(task, &factorial);
+    printf("Factorial of %d = %d\n", n, factorial);
+
+    const char *input = "Hello World";
+    gt_task_t str_task = gt_spawn_ptr(allocate_string, (void *)input);
+
+    void *result_ptr;
+    gt_join_ptr(str_task, &result_ptr);
+    printf("Result: %s\n", (char *)result_ptr);
+    free(result_ptr);
+}
+
+// ========== EXAMPLE 3: Channels for Communication ==========
+
+void producer(void *arg) {
+    gt_chan_t ch = *(gt_chan_t *)arg;
+
+    for (int i = 0; i < 5; i++) {
+        char msg[32];
+        snprintf(msg, sizeof(msg), "Message %d", i);
+
+        printf("[Producer] Sending: %s\n", msg);
+        gt_chan_send(ch, msg, strlen(msg) + 1);
+        gt_sleep(100);
+    }
+
+    gt_chan_close(ch);
+    printf("[Producer] Channel closed\n");
+}
+
+void consumer(void *arg) {
+    gt_chan_t ch = *(gt_chan_t *)arg;
+    char buf[64];
+    uint32_t len;
+
+    while (1) {
+        int ret = gt_chan_recv(ch, buf, sizeof(buf), &len);
+
+        if (ret == GT_ERR_CLOSED) {
+            printf("[Consumer] Channel closed, exiting\n");
+            break;
+        }
+
+        if (ret == GT_OK) {
+            printf("[Consumer] Received: %s\n", buf);
+        }
+    }
+}
+
+void demo_channels() {
+    printf("\n=== Demo 3: Channels ===\n");
+
+    gt_chan_t ch = gt_chan_create(3); // Buffered channel
+
+    gt_task_t prod = gt_spawn_void(producer, &ch);
+    gt_task_t cons = gt_spawn_void(consumer, &ch);
+
+    gt_join(prod);
+    gt_join(cons);
+}
+
+// ========== EXAMPLE 4: WaitGroup Pattern ==========
+
+typedef struct {
+    int worker_id;
+    gt_wg_t wg;
+} worker_args_t;
+
+void worker(void *arg) {
+    worker_args_t *args = (worker_args_t *)arg;
+
+    printf("[Worker %d] Starting\n", args->worker_id);
+    gt_sleep(50 + (args->worker_id * 20));
+    printf("[Worker %d] Done\n", args->worker_id);
+
+    gt_wg_done(args->wg);
+    free(args);
+}
+
+void demo_waitgroup() {
+    printf("\n=== Demo 4: WaitGroup ===\n");
+
+    gt_wg_t wg = gt_wg_create();
+    const int num_workers = 5;
+
+    gt_wg_add(wg, num_workers);
+
+    for (int i = 0; i < num_workers; i++) {
+        worker_args_t *args = malloc(sizeof(worker_args_t));
+        args->worker_id = i;
+        args->wg = wg;
+
+        gt_spawn_void(worker, args);
+    }
+
+    printf("Waiting for all workers...\n");
+    gt_wg_wait(wg);
+    printf("All workers completed\n");
+
+    gt_wg_destroy(wg);
+}
+
+// ========== EXAMPLE 5: Mutex for Shared State ==========
+
+typedef struct {
+    gt_mutex_t mutex;
+    int *counter;
+    int iterations;
+} counter_args_t;
+
+void increment_counter(void *arg) {
+    counter_args_t *args = (counter_args_t *)arg;
+
+    for (int i = 0; i < args->iterations; i++) {
+        gt_mutex_lock(args->mutex);
+        (*args->counter)++;
+        gt_mutex_unlock(args->mutex);
+    }
+}
+
+void demo_mutex() {
+    printf("\n=== Demo 5: Mutex ===\n");
+
+    gt_mutex_t mutex = gt_mutex_create();
+    int counter = 0;
+
+    const int num_goroutines = 10;
+    const int iterations = 1000;
+
+    counter_args_t args = {
+        .mutex = mutex, .counter = &counter, .iterations = iterations};
+
+    gt_task_t tasks[num_goroutines];
+    for (int i = 0; i < num_goroutines; i++) {
+        tasks[i] = gt_spawn_void(increment_counter, &args);
+    }
+
+    for (int i = 0; i < num_goroutines; i++) {
+        gt_join(tasks[i]);
+    }
+
+    printf("Final counter value: %d (expected: %d)\n", counter,
+           num_goroutines * iterations);
+
+    gt_mutex_destroy(mutex);
+}
+
+// ========== EXAMPLE 6: Context and Cancellation ==========
+
+typedef struct {
+    gt_ctx_t ctx;
+    int worker_id;
+} ctx_worker_args_t;
+
+void cancellable_worker(void *arg) {
+    ctx_worker_args_t *args = (ctx_worker_args_t *)arg;
+
+    printf("[Worker %d] Starting (cancellable)\n", args->worker_id);
+
+    for (int i = 0; i < 10; i++) {
+        if (gt_ctx_is_done(args->ctx)) {
+            printf("[Worker %d] Cancelled at iteration %d\n", args->worker_id,
+                   i);
+            free(args);
+            return;
+        }
+
+        printf("[Worker %d] Iteration %d\n", args->worker_id, i);
+        gt_sleep(100);
+    }
+
+    printf("[Worker %d] Completed normally\n", args->worker_id);
+    free(args);
+}
+
+void demo_context() {
+    printf("\n=== Demo 6: Context and Cancellation ===\n");
+
+    gt_ctx_t bg = gt_ctx_background();
+    gt_ctx_t ctx = gt_ctx_with_cancel(bg);
+
+    // Start 3 workers
+    for (int i = 0; i < 3; i++) {
+        ctx_worker_args_t *args = malloc(sizeof(ctx_worker_args_t));
+        args->ctx = ctx;
+        args->worker_id = i;
+        gt_spawn_void(cancellable_worker, args);
+    }
+
+    // Let them run for a bit
+    gt_sleep(350);
+
+    // Cancel all workers
+    printf("\n[Main] Cancelling context\n");
+    gt_ctx_cancel(ctx);
+
+    gt_sleep(200); // Give them time to finish
+
+    gt_ctx_destroy(ctx);
+    gt_ctx_destroy(bg);
+}
+
+// ========== EXAMPLE 7: Timers and Tickers ==========
+
+void demo_timers() {
+    printf("\n=== Demo 7: Timers ===\n");
+
+    printf("Setting timer for 500ms...\n");
+    gt_timer_t timer = gt_timer_create(500);
+    gt_chan_t timer_ch = gt_timer_chan(timer);
+
+    char buf[1];
+    uint32_t len;
+
+    printf("Waiting for timer...\n");
+    gt_chan_recv(timer_ch, buf, sizeof(buf), &len);
+    printf("Timer fired!\n");
+
+    gt_timer_destroy(timer);
+}
+
+void demo_tickers() {
+    printf("\n=== Demo 8: Tickers ===\n");
+
+    gt_ticker_t ticker = gt_ticker_create(200);
+    gt_chan_t tick_ch = gt_ticker_chan(ticker);
+
+    char buf[1];
+    uint32_t len;
+
+    printf("Ticker started (200ms interval)\n");
+
+    for (int i = 0; i < 5; i++) {
+        gt_chan_recv(tick_ch, buf, sizeof(buf), &len);
+        printf("Tick %d at %lld ms\n", i, (long long)gt_now_unix_ms());
+    }
+
+    gt_ticker_stop(ticker);
+    gt_ticker_destroy(ticker);
+    printf("Ticker stopped\n");
+}
+
+// ========== EXAMPLE 9: Pipeline Pattern ==========
+
+void stage1(void *arg) {
+    gt_chan_t out = *(gt_chan_t *)arg;
+
+    for (int i = 1; i <= 5; i++) {
+        printf("[Stage1] Producing %d\n", i);
+        gt_chan_send(out, &i, sizeof(i));
+        gt_sleep(100);
+    }
+
+    gt_chan_close(out);
+}
+
+void stage2(void *arg) {
+    gt_chan_t *chans = (gt_chan_t *)arg;
+    gt_chan_t in = chans[0];
+    gt_chan_t out = chans[1];
+
+    char buf[64];
+    uint32_t len;
+
+    while (1) {
+        int ret = gt_chan_recv(in, buf, sizeof(buf), &len);
+
+        if (ret == GT_ERR_CLOSED) {
+            gt_chan_close(out);
+            break;
+        }
+
+        if (ret == GT_OK) {
+            int val = *(int *)buf;
+            int squared = val * val;
+            printf("[Stage2] %d -> %d\n", val, squared);
+            gt_chan_send(out, &squared, sizeof(squared));
+        }
+    }
+}
+
+void stage3(void *arg) {
+    gt_chan_t in = *(gt_chan_t *)arg;
+
+    char buf[64];
+    uint32_t len;
+    int sum = 0;
+
+    while (1) {
+        int ret = gt_chan_recv(in, buf, sizeof(buf), &len);
+
+        if (ret == GT_ERR_CLOSED) {
+            break;
+        }
+
+        if (ret == GT_OK) {
+            int val = *(int *)buf;
+            sum += val;
+            printf("[Stage3] Accumulated: %d (total: %d)\n", val, sum);
+        }
+    }
+
+    printf("[Stage3] Final sum: %d\n", sum);
+}
+
+void demo_pipeline() {
+    printf("\n=== Demo 9: Pipeline Pattern ===\n");
+
+    gt_chan_t ch1 = gt_chan_create(2);
+    gt_chan_t ch2 = gt_chan_create(2);
+
+    gt_task_t s1 = gt_spawn_void(stage1, &ch1);
+
+    gt_chan_t stage2_chans[2] = {ch1, ch2};
+    gt_task_t s2 = gt_spawn_void(stage2, stage2_chans);
+
+    gt_task_t s3 = gt_spawn_void(stage3, &ch2);
+
+    gt_join(s1);
+    gt_join(s2);
+    gt_join(s3);
+}
+
+// ========== EXAMPLE 10: Advanced - Fan-out/Fan-in ==========
+
+typedef struct {
+    gt_chan_t in;
+    gt_chan_t out;
+    int worker_id;
+    gt_wg_t wg;
+} fanout_args_t;
+
+void fanout_worker(void *arg) {
+    fanout_args_t *args = (fanout_args_t *)arg;
+
+    char buf[64];
+    uint32_t len;
+
+    while (1) {
+        int ret = gt_chan_recv(args->in, buf, sizeof(buf), &len);
+
+        if (ret == GT_ERR_CLOSED) {
+            break;
+        }
+
+        if (ret == GT_OK) {
+            int val = *(int *)buf;
+            int result = val * args->worker_id;
+
+            printf("[Worker %d] Processing %d -> %d\n", args->worker_id, val,
+                   result);
+
+            gt_sleep(50 + (args->worker_id * 10));
+
+            gt_chan_send(args->out, &result, sizeof(result));
+        }
+    }
+
+    gt_wg_done(args->wg);
+    free(args);
+}
+
+void demo_fanout_fanin() {
+    printf("\n=== Demo 10: Fan-out/Fan-in ===\n");
+
+    gt_chan_t input = gt_chan_create(10);
+    gt_chan_t output = gt_chan_create(10);
+    gt_wg_t wg = gt_wg_create();
+
+    const int num_workers = 3;
+    gt_wg_add(wg, num_workers);
+
+    // Start workers (fan-out)
+    for (int i = 0; i < num_workers; i++) {
+        fanout_args_t *args = malloc(sizeof(fanout_args_t));
+        args->in = input;
+        args->out = output;
+        args->worker_id = i + 1;
+        args->wg = wg;
+
+        gt_spawn_void(fanout_worker, args);
+    }
+
+    // Produce data
+    gt_task_t producer_task =
+        gt_spawn_void((gt_void_func_t) ^
+                          (void *_) {
+                              for (int i = 1; i <= 9; i++) {
+                                  gt_chan_send(input, &i, sizeof(i));
+                              }
+                              gt_chan_close(input);
+                          },
+                      NULL);
+
+    // Collect results (fan-in)
+    gt_task_t collector =
+        gt_spawn_void((gt_void_func_t) ^
+                          (void *ch_ptr) {
+                              gt_chan_t ch = *(gt_chan_t *)ch_ptr;
+                              gt_wg_wait(wg); // Wait for all workers
+                              gt_chan_close(ch);
+                          },
+                      &output);
+
+    // Read all results
+    char buf[64];
+    uint32_t len;
+    int total = 0;
+
+    while (1) {
+        int ret = gt_chan_recv(output, buf, sizeof(buf), &len);
+
+        if (ret == GT_ERR_CLOSED) {
+            break;
+        }
+
+        if (ret == GT_OK) {
+            int val = *(int *)buf;
+            total += val;
+            printf("[Collector] Got result: %d\n", val);
+        }
+    }
+
+    printf("[Collector] Total: %d\n", total);
+
+    gt_join(producer_task);
+    gt_join(collector);
+    gt_wg_destroy(wg);
+}
+
+// ========== MAIN ==========
+
+int main(void) {
+    printf("=================================================\n");
+    printf("Go Green Threads FFI Library - Comprehensive Demo\n");
+    printf("=================================================\n");
+
+    gt_init();
+
+    printf("\nCPU Count: %u\n", gt_num_cpu());
+    printf("Initial Goroutines: %u\n", gt_num_goroutine());
+
+    demo_basic_spawning();
+    demo_return_values();
+    demo_channels();
+    demo_waitgroup();
+    demo_mutex();
+    demo_context();
+    demo_timers();
+    demo_tickers();
+    demo_pipeline();
+    demo_fanout_fanin();
+
+    printf("\n=== All Demos Completed ===\n");
+    printf("Final Goroutines: %u\n", gt_num_goroutine());
+
+    gt_shutdown();
+
+    return 0;
+}
