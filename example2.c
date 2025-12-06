@@ -411,6 +411,7 @@ void fanout_worker(void *arg) {
         int ret = gt_chan_recv(args->in, buf, sizeof(buf), &len);
 
         if (ret == 2) { // GT_ERR_CLOSED
+            printf("[Worker %d] Input closed, exiting\n", args->worker_id);
             break;
         }
 
@@ -423,10 +424,13 @@ void fanout_worker(void *arg) {
 
             gt_sleep(50 + (args->worker_id * 10));
 
+            printf("[Worker %d] Sending result %d\n", args->worker_id, result);
             gt_chan_send(args->out, &result, sizeof(result));
+            printf("[Worker %d] Result sent\n", args->worker_id);
         }
     }
 
+    printf("[Worker %d] Calling wg_done\n", args->worker_id);
     gt_wg_done(args->wg);
     free(args);
 }
@@ -445,10 +449,20 @@ void output_closer(void *arg) {
 
 void producer_function(void *arg) {
     uint64_t ch = *(uint64_t *)arg;
+    printf("[Producer] Starting, will send 9 items\n");
     for (int i = 1; i <= 9; i++) {
-        gt_chan_send(ch, &i, sizeof(i));
+        printf("[Producer] Sending %d\n", i);
+        int value = i; // Copy to ensure stable address
+        int ret = gt_chan_send(ch, &value, sizeof(value));
+        if (ret != 0) {
+            printf("[Producer] Send failed with error %d\n", ret);
+            break;
+        }
+        printf("[Producer] Sent %d successfully\n", i);
     }
+    printf("[Producer] Closing input channel\n");
     gt_chan_close(ch);
+    printf("[Producer] Producer finished\n");
 }
 
 void demo_fanout_fanin() {
@@ -485,26 +499,39 @@ void demo_fanout_fanin() {
     char buf[64];
     uint32_t len;
     int total = 0;
+    int results_received = 0;
+
+    printf("[Collector] Waiting for results...\n");
 
     while (1) {
         int ret = gt_chan_recv(output, buf, sizeof(buf), &len);
 
         if (ret == 2) { // GT_ERR_CLOSED
+            printf("[Collector] Channel closed after %d results\n",
+                   results_received);
             break;
         }
 
         if (ret == 0) { // GT_OK
             int val = *(int *)buf;
             total += val;
-            printf("[Collector] Got result: %d\n", val);
+            results_received++;
+            printf("[Collector] Got result %d: %d\n", results_received, val);
         }
     }
 
     printf("[Collector] Total: %d\n", total);
 
+    printf("[Main] Waiting for producer to finish...\n");
     gt_join(producer_task);
+    printf("[Main] Producer finished\n");
+
+    printf("[Main] Waiting for closer to finish...\n");
     gt_join(collector);
+    printf("[Main] Closer finished\n");
+
     gt_wg_destroy(wg);
+    printf("[Main] Fan-out/Fan-in demo completed\n");
 }
 
 // ========== EXAMPLE 11: Try Send/Recv (Non-blocking) ==========
