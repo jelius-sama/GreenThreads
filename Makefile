@@ -25,7 +25,7 @@ CFLAGS := -Wall -Wextra -O2 -I./ -I$(LIB_DIR)
 all: lib example2
 
 # Build shared library
-lib: $(LIB_DIR)/$(SHARED_LIB)
+lib: $(LIB_DIR)/$(SHARED_LIB) $(LIB_DIR)/$(STATIC_LIB)
 
 $(LIB_DIR)/$(SHARED_LIB): gtruntime.go
 	@mkdir -p $(LIB_DIR)

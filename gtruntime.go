@@ -58,7 +58,7 @@ type (
 // ========== TASK STORAGE ==========
 type taskState struct {
     done   chan struct{}
-    result interface{}
+    result any
     err    error
 }
 
@@ -138,7 +138,7 @@ func allocateTask() (taskHandle, *taskState) {
     return h, state
 }
 
-func completeTask(h taskHandle, result interface{}, err error) {
+func completeTask(h taskHandle, result any, err error) {
     tasksMu.Lock()
     state, ok := tasks[h]
     tasksMu.Unlock()
@@ -438,10 +438,7 @@ func gt_chan_recv(h C.uint64_t, buf unsafe.Pointer, maxlen C.uint32_t, out_len *
         return C.int(2) // Closed
     }
 
-    n := len(msg)
-    if n > int(maxlen) {
-        n = int(maxlen)
-    }
+    n := min(len(msg), int(maxlen))
 
     if n > 0 && buf != nil {
         dst := unsafe.Slice((*byte)(buf), int(maxlen))
@@ -471,10 +468,7 @@ func gt_chan_try_recv(h C.uint64_t, buf unsafe.Pointer, maxlen C.uint32_t, out_l
             return C.int(2)
         }
 
-        n := len(msg)
-        if n > int(maxlen) {
-            n = int(maxlen)
-        }
+        n := min(len(msg), int(maxlen))
 
         if n > 0 && buf != nil {
             dst := unsafe.Slice((*byte)(buf), int(maxlen))
@@ -534,8 +528,8 @@ func gt_select(cases *C.gt_select_case_t, num_cases C.uint32_t) C.int {
 
     // Build select cases
     selectCases := make([]chan []byte, n)
-    for i := 0; i < n; i++ {
-        handle := chanHandle(cCases[i].channel)
+    for i, c := range cCases[:n] {
+        handle := chanHandle(c.channel)
         chansMu.RLock()
         ch, ok := chans[handle]
         chansMu.RUnlock()
@@ -547,19 +541,16 @@ func gt_select(cases *C.gt_select_case_t, num_cases C.uint32_t) C.int {
     }
 
     // Simple implementation: try each in order
-    for i := 0; i < n; i++ {
+    for i, ch := range selectCases[:n] {
         select {
-        case msg, ok := <-selectCases[i]:
+        case msg, ok := <-ch:
             if !ok {
                 return C.int(-1)
             }
 
             // Copy data to output buffer
             if cCases[i].buf != nil && cCases[i].out_len != nil {
-                length := len(msg)
-                if length > int(cCases[i].maxlen) {
-                    length = int(cCases[i].maxlen)
-                }
+                length := min(len(msg), int(cCases[i].maxlen))
 
                 if length > 0 {
                     dst := unsafe.Slice((*byte)(cCases[i].buf), int(cCases[i].maxlen))
@@ -582,10 +573,7 @@ func gt_select(cases *C.gt_select_case_t, num_cases C.uint32_t) C.int {
     }
 
     if cCases[0].buf != nil && cCases[0].out_len != nil {
-        length := len(msg)
-        if length > int(cCases[0].maxlen) {
-            length = int(cCases[0].maxlen)
-        }
+        length := min(len(msg), int(cCases[0].maxlen))
 
         if length > 0 {
             dst := unsafe.Slice((*byte)(cCases[0].buf), int(cCases[0].maxlen))
