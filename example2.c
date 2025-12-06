@@ -443,6 +443,14 @@ void output_closer(void *arg) {
     free(args);
 }
 
+void producer_function(void *arg) {
+    uint64_t ch = *(uint64_t *)arg;
+    for (int i = 1; i <= 9; i++) {
+        gt_chan_send(ch, &i, sizeof(i));
+    }
+    gt_chan_close(ch);
+}
+
 void demo_fanout_fanin() {
     printf("\n=== Demo 10: Fan-out/Fan-in ===\n");
 
@@ -465,15 +473,7 @@ void demo_fanout_fanin() {
     }
 
     // Start producer
-    uint64_t producer_task = gt_spawn_void(
-        (c_void_func_t)(void *)^(void *_) {
-          uint64_t ch = input;
-          for (int i = 1; i <= 9; i++) {
-              gt_chan_send(ch, &i, sizeof(i));
-          }
-          gt_chan_close(ch);
-        },
-        NULL);
+    uint64_t producer_task = gt_spawn_void(producer_function, &input);
 
     // Start output closer
     closer_args_t *closer = malloc(sizeof(closer_args_t));
