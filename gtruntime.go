@@ -110,14 +110,16 @@ func gt_init() {
 
 //export gt_shutdown
 func gt_shutdown() {
-    // Clean up resources
     tasksMu.Lock()
     tasks = make(map[taskHandle]*taskState)
     tasksMu.Unlock()
 
     chansMu.Lock()
     for _, ch := range chans {
-        close(ch)
+        func() {
+            defer func() { recover() }()
+            close(ch)
+        }()
     }
     chans = make(map[chanHandle]chan []byte)
     chansMu.Unlock()
@@ -357,7 +359,6 @@ func gt_chan_close(h C.uint64_t) {
     ch, ok := chans[handle]
     if ok {
         close(ch)
-        delete(chans, handle)
     }
     chansMu.Unlock()
 }
