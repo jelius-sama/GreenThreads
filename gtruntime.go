@@ -3,11 +3,20 @@ package main
 /*
 #include <stdint.h>
 #include <stdlib.h>
-#include "gtruntime.h"
+#include <stdbool.h>
 
 typedef void (*c_void_func_t)(void*);
 typedef void* (*c_ptr_func_t)(void*);
 typedef int (*c_int_func_t)(void*);
+
+typedef uint64_t gt_chan_t;   // Handle to channel
+typedef struct {
+    gt_chan_t channel;
+    void *buf;
+    uint32_t maxlen;
+    uint32_t *out_len;
+    int case_id;
+} gt_select_case_t;
 
 // Trampolines to invoke C function pointers from Go
 static inline void invoke_void_func(c_void_func_t fn, void* arg) {

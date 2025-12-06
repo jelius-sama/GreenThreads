@@ -1,4 +1,4 @@
-#include "gtruntime.h"
+#include "lib/libgtruntime.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -18,9 +18,9 @@ void demo_basic_spawning() {
 
     int id1 = 1, id2 = 2, id3 = 3;
 
-    gt_task_t t1 = gt_spawn_void(simple_task, &id1);
-    gt_task_t t2 = gt_spawn_void(simple_task, &id2);
-    gt_task_t t3 = gt_spawn_void(simple_task, &id3);
+    uint64_t t1 = gt_spawn_void(simple_task, &id1);
+    uint64_t t2 = gt_spawn_void(simple_task, &id2);
+    uint64_t t3 = gt_spawn_void(simple_task, &id3);
 
     printf("Spawned 3 tasks\n");
 
@@ -55,14 +55,14 @@ void demo_return_values() {
     printf("\n=== Demo 2: Return Values ===\n");
 
     int n = 10;
-    gt_task_t task = gt_spawn_int(compute_factorial, &n);
+    uint64_t task = gt_spawn_int(compute_factorial, &n);
 
     int factorial;
     gt_join_int(task, &factorial);
     printf("Factorial of %d = %d\n", n, factorial);
 
     const char *input = "Hello World";
-    gt_task_t str_task = gt_spawn_ptr(allocate_string, (void *)input);
+    uint64_t str_task = gt_spawn_ptr(allocate_string, (void *)input);
 
     void *result_ptr;
     gt_join_ptr(str_task, &result_ptr);
@@ -72,8 +72,12 @@ void demo_return_values() {
 
 // ========== EXAMPLE 3: Channels for Communication ==========
 
+typedef struct {
+    uint64_t channel;
+} channel_wrapper_t;
+
 void producer(void *arg) {
-    gt_chan_t ch = *(gt_chan_t *)arg;
+    uint64_t ch = *(uint64_t *)arg;
 
     for (int i = 0; i < 5; i++) {
         char msg[32];
@@ -89,19 +93,19 @@ void producer(void *arg) {
 }
 
 void consumer(void *arg) {
-    gt_chan_t ch = *(gt_chan_t *)arg;
+    uint64_t ch = *(uint64_t *)arg;
     char buf[64];
     uint32_t len;
 
     while (1) {
         int ret = gt_chan_recv(ch, buf, sizeof(buf), &len);
 
-        if (ret == GT_ERR_CLOSED) {
+        if (ret == 2) { // GT_ERR_CLOSED
             printf("[Consumer] Channel closed, exiting\n");
             break;
         }
 
-        if (ret == GT_OK) {
+        if (ret == 0) { // GT_OK
             printf("[Consumer] Received: %s\n", buf);
         }
     }
@@ -110,10 +114,10 @@ void consumer(void *arg) {
 void demo_channels() {
     printf("\n=== Demo 3: Channels ===\n");
 
-    gt_chan_t ch = gt_chan_create(3); // Buffered channel
+    uint64_t ch = gt_chan_create(3); // Buffered channel
 
-    gt_task_t prod = gt_spawn_void(producer, &ch);
-    gt_task_t cons = gt_spawn_void(consumer, &ch);
+    uint64_t prod = gt_spawn_void(producer, &ch);
+    uint64_t cons = gt_spawn_void(consumer, &ch);
 
     gt_join(prod);
     gt_join(cons);
@@ -123,7 +127,7 @@ void demo_channels() {
 
 typedef struct {
     int worker_id;
-    gt_wg_t wg;
+    uint64_t wg;
 } worker_args_t;
 
 void worker(void *arg) {
@@ -140,7 +144,7 @@ void worker(void *arg) {
 void demo_waitgroup() {
     printf("\n=== Demo 4: WaitGroup ===\n");
 
-    gt_wg_t wg = gt_wg_create();
+    uint64_t wg = gt_wg_create();
     const int num_workers = 5;
 
     gt_wg_add(wg, num_workers);
@@ -163,7 +167,7 @@ void demo_waitgroup() {
 // ========== EXAMPLE 5: Mutex for Shared State ==========
 
 typedef struct {
-    gt_mutex_t mutex;
+    uint64_t mutex;
     int *counter;
     int iterations;
 } counter_args_t;
@@ -181,7 +185,7 @@ void increment_counter(void *arg) {
 void demo_mutex() {
     printf("\n=== Demo 5: Mutex ===\n");
 
-    gt_mutex_t mutex = gt_mutex_create();
+    uint64_t mutex = gt_mutex_create();
     int counter = 0;
 
     const int num_goroutines = 10;
@@ -190,7 +194,7 @@ void demo_mutex() {
     counter_args_t args = {
         .mutex = mutex, .counter = &counter, .iterations = iterations};
 
-    gt_task_t tasks[num_goroutines];
+    uint64_t tasks[10];
     for (int i = 0; i < num_goroutines; i++) {
         tasks[i] = gt_spawn_void(increment_counter, &args);
     }
@@ -208,7 +212,7 @@ void demo_mutex() {
 // ========== EXAMPLE 6: Context and Cancellation ==========
 
 typedef struct {
-    gt_ctx_t ctx;
+    uint64_t ctx;
     int worker_id;
 } ctx_worker_args_t;
 
@@ -236,8 +240,8 @@ void cancellable_worker(void *arg) {
 void demo_context() {
     printf("\n=== Demo 6: Context and Cancellation ===\n");
 
-    gt_ctx_t bg = gt_ctx_background();
-    gt_ctx_t ctx = gt_ctx_with_cancel(bg);
+    uint64_t bg = gt_ctx_background();
+    uint64_t ctx = gt_ctx_with_cancel(bg);
 
     // Start 3 workers
     for (int i = 0; i < 3; i++) {
@@ -260,14 +264,14 @@ void demo_context() {
     gt_ctx_destroy(bg);
 }
 
-// ========== EXAMPLE 7: Timers and Tickers ==========
+// ========== EXAMPLE 7: Timers ==========
 
 void demo_timers() {
     printf("\n=== Demo 7: Timers ===\n");
 
     printf("Setting timer for 500ms...\n");
-    gt_timer_t timer = gt_timer_create(500);
-    gt_chan_t timer_ch = gt_timer_chan(timer);
+    uint64_t timer = gt_timer_create(500);
+    uint64_t timer_ch = gt_timer_chan(timer);
 
     char buf[1];
     uint32_t len;
@@ -279,11 +283,13 @@ void demo_timers() {
     gt_timer_destroy(timer);
 }
 
+// ========== EXAMPLE 8: Tickers ==========
+
 void demo_tickers() {
     printf("\n=== Demo 8: Tickers ===\n");
 
-    gt_ticker_t ticker = gt_ticker_create(200);
-    gt_chan_t tick_ch = gt_ticker_chan(ticker);
+    uint64_t ticker = gt_ticker_create(200);
+    uint64_t tick_ch = gt_ticker_chan(ticker);
 
     char buf[1];
     uint32_t len;
@@ -303,7 +309,7 @@ void demo_tickers() {
 // ========== EXAMPLE 9: Pipeline Pattern ==========
 
 void stage1(void *arg) {
-    gt_chan_t out = *(gt_chan_t *)arg;
+    uint64_t out = *(uint64_t *)arg;
 
     for (int i = 1; i <= 5; i++) {
         printf("[Stage1] Producing %d\n", i);
@@ -314,10 +320,15 @@ void stage1(void *arg) {
     gt_chan_close(out);
 }
 
+typedef struct {
+    uint64_t in;
+    uint64_t out;
+} stage2_args_t;
+
 void stage2(void *arg) {
-    gt_chan_t *chans = (gt_chan_t *)arg;
-    gt_chan_t in = chans[0];
-    gt_chan_t out = chans[1];
+    stage2_args_t *args = (stage2_args_t *)arg;
+    uint64_t in = args->in;
+    uint64_t out = args->out;
 
     char buf[64];
     uint32_t len;
@@ -325,12 +336,12 @@ void stage2(void *arg) {
     while (1) {
         int ret = gt_chan_recv(in, buf, sizeof(buf), &len);
 
-        if (ret == GT_ERR_CLOSED) {
+        if (ret == 2) { // GT_ERR_CLOSED
             gt_chan_close(out);
             break;
         }
 
-        if (ret == GT_OK) {
+        if (ret == 0) { // GT_OK
             int val = *(int *)buf;
             int squared = val * val;
             printf("[Stage2] %d -> %d\n", val, squared);
@@ -340,7 +351,7 @@ void stage2(void *arg) {
 }
 
 void stage3(void *arg) {
-    gt_chan_t in = *(gt_chan_t *)arg;
+    uint64_t in = *(uint64_t *)arg;
 
     char buf[64];
     uint32_t len;
@@ -349,11 +360,11 @@ void stage3(void *arg) {
     while (1) {
         int ret = gt_chan_recv(in, buf, sizeof(buf), &len);
 
-        if (ret == GT_ERR_CLOSED) {
+        if (ret == 2) { // GT_ERR_CLOSED
             break;
         }
 
-        if (ret == GT_OK) {
+        if (ret == 0) { // GT_OK
             int val = *(int *)buf;
             sum += val;
             printf("[Stage3] Accumulated: %d (total: %d)\n", val, sum);
@@ -366,28 +377,28 @@ void stage3(void *arg) {
 void demo_pipeline() {
     printf("\n=== Demo 9: Pipeline Pattern ===\n");
 
-    gt_chan_t ch1 = gt_chan_create(2);
-    gt_chan_t ch2 = gt_chan_create(2);
+    uint64_t ch1 = gt_chan_create(2);
+    uint64_t ch2 = gt_chan_create(2);
 
-    gt_task_t s1 = gt_spawn_void(stage1, &ch1);
+    uint64_t s1 = gt_spawn_void(stage1, &ch1);
 
-    gt_chan_t stage2_chans[2] = {ch1, ch2};
-    gt_task_t s2 = gt_spawn_void(stage2, stage2_chans);
+    stage2_args_t stage2_args = {ch1, ch2};
+    uint64_t s2 = gt_spawn_void(stage2, &stage2_args);
 
-    gt_task_t s3 = gt_spawn_void(stage3, &ch2);
+    uint64_t s3 = gt_spawn_void(stage3, &ch2);
 
     gt_join(s1);
     gt_join(s2);
     gt_join(s3);
 }
 
-// ========== EXAMPLE 10: Advanced - Fan-out/Fan-in ==========
+// ========== EXAMPLE 10: Fan-out/Fan-in ==========
 
 typedef struct {
-    gt_chan_t in;
-    gt_chan_t out;
+    uint64_t in;
+    uint64_t out;
     int worker_id;
-    gt_wg_t wg;
+    uint64_t wg;
 } fanout_args_t;
 
 void fanout_worker(void *arg) {
@@ -399,11 +410,11 @@ void fanout_worker(void *arg) {
     while (1) {
         int ret = gt_chan_recv(args->in, buf, sizeof(buf), &len);
 
-        if (ret == GT_ERR_CLOSED) {
+        if (ret == 2) { // GT_ERR_CLOSED
             break;
         }
 
-        if (ret == GT_OK) {
+        if (ret == 0) { // GT_OK
             int val = *(int *)buf;
             int result = val * args->worker_id;
 
@@ -420,12 +431,32 @@ void fanout_worker(void *arg) {
     free(args);
 }
 
+typedef struct {
+    uint64_t wg;
+    uint64_t output;
+} closer_args_t;
+
+void output_closer(void *arg) {
+    closer_args_t *args = (closer_args_t *)arg;
+    gt_wg_wait(args->wg);
+    gt_chan_close(args->output);
+    free(args);
+}
+
+void producer_function(void *arg) {
+    uint64_t ch = *(uint64_t *)arg;
+    for (int i = 1; i <= 9; i++) {
+        gt_chan_send(ch, &i, sizeof(i));
+    }
+    gt_chan_close(ch);
+}
+
 void demo_fanout_fanin() {
     printf("\n=== Demo 10: Fan-out/Fan-in ===\n");
 
-    gt_chan_t input = gt_chan_create(10);
-    gt_chan_t output = gt_chan_create(10);
-    gt_wg_t wg = gt_wg_create();
+    uint64_t input = gt_chan_create(10);
+    uint64_t output = gt_chan_create(10);
+    uint64_t wg = gt_wg_create();
 
     const int num_workers = 3;
     gt_wg_add(wg, num_workers);
@@ -441,28 +472,16 @@ void demo_fanout_fanin() {
         gt_spawn_void(fanout_worker, args);
     }
 
-    // Produce data
-    gt_task_t producer_task =
-        gt_spawn_void((gt_void_func_t) ^
-                          (void *_) {
-                              for (int i = 1; i <= 9; i++) {
-                                  gt_chan_send(input, &i, sizeof(i));
-                              }
-                              gt_chan_close(input);
-                          },
-                      NULL);
+    // Start producer
+    uint64_t producer_task = gt_spawn_void(producer_function, &input);
 
-    // Collect results (fan-in)
-    gt_task_t collector =
-        gt_spawn_void((gt_void_func_t) ^
-                          (void *ch_ptr) {
-                              gt_chan_t ch = *(gt_chan_t *)ch_ptr;
-                              gt_wg_wait(wg); // Wait for all workers
-                              gt_chan_close(ch);
-                          },
-                      &output);
+    // Start output closer
+    closer_args_t *closer = malloc(sizeof(closer_args_t));
+    closer->wg = wg;
+    closer->output = output;
+    uint64_t collector = gt_spawn_void(output_closer, closer);
 
-    // Read all results
+    // Read all results (fan-in)
     char buf[64];
     uint32_t len;
     int total = 0;
@@ -470,11 +489,11 @@ void demo_fanout_fanin() {
     while (1) {
         int ret = gt_chan_recv(output, buf, sizeof(buf), &len);
 
-        if (ret == GT_ERR_CLOSED) {
+        if (ret == 2) { // GT_ERR_CLOSED
             break;
         }
 
-        if (ret == GT_OK) {
+        if (ret == 0) { // GT_OK
             int val = *(int *)buf;
             total += val;
             printf("[Collector] Got result: %d\n", val);
@@ -486,6 +505,105 @@ void demo_fanout_fanin() {
     gt_join(producer_task);
     gt_join(collector);
     gt_wg_destroy(wg);
+}
+
+// ========== EXAMPLE 11: Try Send/Recv (Non-blocking) ==========
+
+void demo_non_blocking() {
+    printf("\n=== Demo 11: Non-blocking Operations ===\n");
+
+    uint64_t ch = gt_chan_create(2); // Small buffer
+
+    // Fill the channel
+    int val1 = 100, val2 = 200;
+    printf("Sending first two values...\n");
+    gt_chan_send(ch, &val1, sizeof(val1));
+    gt_chan_send(ch, &val2, sizeof(val2));
+
+    // Try to send when full (should fail)
+    int val3 = 300;
+    int ret = gt_chan_try_send(ch, &val3, sizeof(val3));
+    if (ret == 5) { // GT_ERR_WOULD_BLOCK
+        printf("Try send failed: channel full (expected)\n");
+    }
+
+    // Try to receive
+    char buf[64];
+    uint32_t len;
+    ret = gt_chan_try_recv(ch, buf, sizeof(buf), &len);
+    if (ret == 0) { // GT_OK
+        printf("Try recv succeeded: got %d\n", *(int *)buf);
+    }
+
+    // Now we can send
+    ret = gt_chan_try_send(ch, &val3, sizeof(val3));
+    if (ret == 0) {
+        printf("Try send succeeded: sent %d\n", val3);
+    }
+
+    printf("Channel len: %u, cap: %u\n", gt_chan_len(ch), gt_chan_cap(ch));
+
+    gt_chan_close(ch);
+}
+
+// ========== EXAMPLE 12: Task Status Check ==========
+
+void slow_task(void *arg) {
+    int duration = *(int *)arg;
+    printf("[Slow Task] Running for %d ms\n", duration);
+    gt_sleep(duration);
+    printf("[Slow Task] Completed\n");
+}
+
+void demo_task_status() {
+    printf("\n=== Demo 12: Task Status Checking ===\n");
+
+    int duration = 500;
+    uint64_t task = gt_spawn_void(slow_task, &duration);
+
+    // Poll for completion
+    for (int i = 0; i < 10; i++) {
+        if (gt_task_done(task)) {
+            printf("Task completed at check %d\n", i);
+            break;
+        }
+        printf("Task still running (check %d)\n", i);
+        gt_sleep(100);
+    }
+
+    gt_join(task);
+}
+
+// ========== EXAMPLE 13: Timeout Context ==========
+
+void timeout_sensitive_work(void *arg) {
+    uint64_t ctx = *(uint64_t *)arg;
+
+    for (int i = 0; i < 20; i++) {
+        if (gt_ctx_is_done(ctx)) {
+            printf("[Work] Timed out at iteration %d\n", i);
+            return;
+        }
+
+        printf("[Work] Processing iteration %d\n", i);
+        gt_sleep(100);
+    }
+
+    printf("[Work] Completed all work\n");
+}
+
+void demo_context_timeout() {
+    printf("\n=== Demo 13: Context with Timeout ===\n");
+
+    uint64_t bg = gt_ctx_background();
+    uint64_t ctx = gt_ctx_with_timeout(bg, 500); // 500ms timeout
+
+    uint64_t task = gt_spawn_void(timeout_sensitive_work, &ctx);
+
+    gt_join(task);
+
+    gt_ctx_destroy(ctx);
+    gt_ctx_destroy(bg);
 }
 
 // ========== MAIN ==========
@@ -510,6 +628,9 @@ int main(void) {
     demo_tickers();
     demo_pipeline();
     demo_fanout_fanin();
+    demo_non_blocking();
+    demo_task_status();
+    demo_context_timeout();
 
     printf("\n=== All Demos Completed ===\n");
     printf("Final Goroutines: %u\n", gt_num_goroutine());

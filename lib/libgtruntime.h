@@ -2,6 +2,7 @@
 
 /* package command-line-arguments */
 
+
 #line 1 "cgo-builtin-export-prolog"
 
 #include <stddef.h>
@@ -10,10 +11,7 @@
 #define GO_CGO_EXPORT_PROLOGUE_H
 
 #ifndef GO_CGO_GOSTRING_TYPEDEF
-typedef struct {
-    const char *p;
-    ptrdiff_t n;
-} _GoString_;
+typedef struct { const char *p; ptrdiff_t n; } _GoString_;
 extern size_t _GoStringLen(_GoString_ s);
 extern const char *_GoStringPtr(_GoString_ s);
 #endif
@@ -22,24 +20,36 @@ extern const char *_GoStringPtr(_GoString_ s);
 
 /* Start of preamble from import "C" comments.  */
 
+
 #line 3 "gtruntime.go"
 
-#include "../gtruntime.h"
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
-typedef void (*c_void_func_t)(void *);
-typedef void *(*c_ptr_func_t)(void *);
-typedef int (*c_int_func_t)(void *);
+typedef void (*c_void_func_t)(void*);
+typedef void* (*c_ptr_func_t)(void*);
+typedef int (*c_int_func_t)(void*);
+
+typedef uint64_t gt_chan_t;   // Handle to channel
+typedef struct {
+    gt_chan_t channel;
+    void *buf;
+    uint32_t maxlen;
+    uint32_t *out_len;
+    int case_id;
+} gt_select_case_t;
 
 // Trampolines to invoke C function pointers from Go
-static inline void invoke_void_func(c_void_func_t fn, void *arg) { fn(arg); }
+static inline void invoke_void_func(c_void_func_t fn, void* arg) {
+    fn(arg);
+}
 
-static inline void *invoke_ptr_func(c_ptr_func_t fn, void *arg) {
+static inline void* invoke_ptr_func(c_ptr_func_t fn, void* arg) {
     return fn(arg);
 }
 
-static inline int invoke_int_func(c_int_func_t fn, void *arg) {
+static inline int invoke_int_func(c_int_func_t fn, void* arg) {
     return fn(arg);
 }
 
@@ -47,7 +57,9 @@ typedef const void *gt_chan_arg_data;
 
 #line 1 "cgo-generated-wrapper"
 
+
 /* End of preamble from import "C" comments.  */
+
 
 /* Start of boilerplate cgo prologue.  */
 #line 1 "cgo-gcc-export-header-prolog"
@@ -87,23 +99,15 @@ typedef double _Complex GoComplex128;
   static assertion to make sure the file is being used on architecture
   at least with matching size of GoInt.
 */
-typedef char
-    _check_for_64_bit_pointer_matching_GoInt[sizeof(void *) == 64 / 8 ? 1 : -1];
+typedef char _check_for_64_bit_pointer_matching_GoInt[sizeof(void*)==64/8 ? 1:-1];
 
 #ifndef GO_CGO_GOSTRING_TYPEDEF
 typedef _GoString_ GoString;
 #endif
 typedef void *GoMap;
 typedef void *GoChan;
-typedef struct {
-    void *t;
-    void *v;
-} GoInterface;
-typedef struct {
-    void *data;
-    GoInt len;
-    GoInt cap;
-} GoSlice;
+typedef struct { void *t; void *v; } GoInterface;
+typedef struct { void *data; GoInt len; GoInt cap; } GoSlice;
 
 #endif
 
@@ -115,26 +119,24 @@ extern "C" {
 
 extern void gt_init(void);
 extern void gt_shutdown(void);
-extern uint64_t gt_spawn_void(c_void_func_t fn, void *arg);
-extern uint64_t gt_spawn_ptr(c_ptr_func_t fn, void *arg);
-extern uint64_t gt_spawn_int(c_int_func_t fn, void *arg);
-extern uint64_t gt_spawn_go_task(uint32_t task_id, void *arg);
+extern uint64_t gt_spawn_void(c_void_func_t fn, void* arg);
+extern uint64_t gt_spawn_ptr(c_ptr_func_t fn, void* arg);
+extern uint64_t gt_spawn_int(c_int_func_t fn, void* arg);
+extern uint64_t gt_spawn_go_task(uint32_t task_id, void* arg);
 extern int gt_join(uint64_t h);
-extern int gt_join_ptr(uint64_t h, void **result);
-extern int gt_join_int(uint64_t h, int *result);
+extern int gt_join_ptr(uint64_t h, void** result);
+extern int gt_join_int(uint64_t h, int* result);
 extern _Bool gt_task_done(uint64_t h);
 extern int gt_join_all(void);
 extern uint64_t gt_chan_create(uint32_t capacity);
 extern void gt_chan_close(uint64_t h);
 extern int gt_chan_send(uint64_t h, gt_chan_arg_data data, uint32_t length);
 extern int gt_chan_try_send(uint64_t h, gt_chan_arg_data data, uint32_t length);
-extern int gt_chan_recv(uint64_t h, void *buf, uint32_t maxlen,
-                        uint32_t *out_len);
-extern int gt_chan_try_recv(uint64_t h, void *buf, uint32_t maxlen,
-                            uint32_t *out_len);
+extern int gt_chan_recv(uint64_t h, void* buf, uint32_t maxlen, uint32_t* out_len);
+extern int gt_chan_try_recv(uint64_t h, void* buf, uint32_t maxlen, uint32_t* out_len);
 extern uint32_t gt_chan_len(uint64_t h);
 extern uint32_t gt_chan_cap(uint64_t h);
-extern int gt_select(gt_select_case_t *cases, uint32_t num_cases);
+extern int gt_select(gt_select_case_t* cases, uint32_t num_cases);
 extern uint64_t gt_wg_create(void);
 extern void gt_wg_add(uint64_t h, int delta);
 extern void gt_wg_done(uint64_t h);

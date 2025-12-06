@@ -3,7 +3,6 @@
 # Configuration
 GO := go
 CC := gcc
-AR := ar
 
 # Directories
 BUILD_DIR := build
@@ -15,17 +14,15 @@ SHARED_LIB := lib$(LIB_NAME).so
 STATIC_LIB := lib$(LIB_NAME).a
 
 # Go build flags
-GO_BUILD_FLAGS := -buildmode=c-shared
 GO_LDFLAGS := -ldflags="-s -w"
 
 # C build flags
-CFLAGS := -Wall -Wextra -O2 -I. -L$(LIB_DIR)
-LDFLAGS := -L$(LIB_DIR) -l$(LIB_NAME) -lm
+CFLAGS := -Wall -Wextra -O2 -I./ -I$(LIB_DIR)
 
 # Targets
-.PHONY: all clean lib example install test
+.PHONY: all clean lib example example2 install test
 
-all: lib example
+all: lib example2
 
 # Build shared library
 lib: $(LIB_DIR)/$(SHARED_LIB)
@@ -33,28 +30,45 @@ lib: $(LIB_DIR)/$(SHARED_LIB)
 $(LIB_DIR)/$(SHARED_LIB): gtruntime.go
 	@mkdir -p $(LIB_DIR)
 	@echo "Building Go shared library..."
-	$(GO) build $(GO_BUILD_FLAGS) $(GO_LDFLAGS) -o $(LIB_DIR)/$(SHARED_LIB) gtruntime.go
+	$(GO) build -buildmode=c-shared $(GO_LDFLAGS) -o $(LIB_DIR)/$(SHARED_LIB) gtruntime.go
 	@echo "Library built: $(LIB_DIR)/$(SHARED_LIB)"
+	@echo "Generated header: $(LIB_DIR)/libgtruntime.h"
 
-# Build example
+# Build example 
 example: $(BUILD_DIR)/example
 
-$(BUILD_DIR)/example: example.c $(LIB_DIR)/$(SHARED_LIB) gtruntime.h
-	@mkdir -p $(BUILD_DIR)
-	@echo "Building example..."
-	$(CC) $(CFLAGS) -o $(BUILD_DIR)/example example.c $(LDFLAGS)
-	@echo "Example built: $(BUILD_DIR)/example"
+$(LIB_DIR)/$(STATIC_LIB): gtruntime.go
+	@mkdir -p $(LIB_DIR)
+	@echo "Building Go static library..."
+	$(GO) build -buildmode=c-archive $(GO_LDFLAGS) -o $(LIB_DIR)/$(STATIC_LIB) gtruntime.go
+	@echo "Library built: $(LIB_DIR)/$(STATIC_LIB)"
+	@echo "Generated header: $(LIB_DIR)/libgtruntime.h"
 
-# Run example
-run: example
-	@echo "Running example..."
-	LD_LIBRARY_PATH=$(LIB_DIR) $(BUILD_DIR)/example
+$(BUILD_DIR)/example: example.c $(LIB_DIR)/$(STATIC_LIB)
+	@mkdir -p $(BUILD_DIR)
+	@echo "Building example (static linking)..."
+	$(CC) $(CFLAGS) -static -o $(BUILD_DIR)/example example.c $(LIB_DIR)/$(STATIC_LIB)
+	@echo "Example built: $(BUILD_DIR)/example (statically linked)"
+
+# Build example2
+example2: $(BUILD_DIR)/example2
+
+$(BUILD_DIR)/example2: example2.c $(LIB_DIR)/$(SHARED_LIB)
+	@mkdir -p $(BUILD_DIR)
+	@echo "Building example2 (working version with static linking)..."
+	$(CC) $(CFLAGS) -o $(BUILD_DIR)/example2 example2.c $(LIB_DIR)/$(SHARED_LIB)
+	@echo "Example2 built: $(BUILD_DIR)/example2"
+
+# Run example2
+run: example2
+	@echo "Running example2..."
+	$(BUILD_DIR)/example2
 
 # Install library system-wide (requires sudo)
 install: lib
 	@echo "Installing library to /usr/local/lib..."
 	sudo cp $(LIB_DIR)/$(SHARED_LIB) /usr/local/lib/
-	sudo cp gtruntime.h /usr/local/include/
+	sudo cp $(LIB_DIR)/libgtruntime.h /usr/local/include/
 	sudo ldconfig
 	@echo "Installation complete"
 
@@ -71,6 +85,6 @@ docs:
 	@echo "See README.md for usage examples"
 
 # Quick test
-test: example
+test: example2
 	@echo "Running quick test..."
-	LD_LIBRARY_PATH=$(LIB_DIR) timeout 30s $(BUILD_DIR)/example || (echo "Test completed or timed out"; exit 0)
+	LD_LIBRARY_PATH=$(LIB_DIR) timeout 30s $(BUILD_DIR)/example2 || (echo "Test completed or timed out"; exit 0)
